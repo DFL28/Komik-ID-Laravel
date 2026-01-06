@@ -50,18 +50,28 @@ class AdminController extends Controller
         $downloadImages = $request->has('download_images');
         $imgFlag = $downloadImages ? '--images=true' : '--images=false';
         
-        // Command to run
-        // We use 'php artisan scraper:run'
-        // For Windows background execution: start /B php artisan ...
+        // Command to run (cross-platform background execution)
         $artisanPath = base_path('artisan');
-        $command = "start /B php \"{$artisanPath}\" scraper:run --pages={$pages} {$imgFlag}";
+        $phpBinary = PHP_BINARY && file_exists(PHP_BINARY) ? PHP_BINARY : 'php';
+        $artisanArg = escapeshellarg($artisanPath);
+        $phpArg = escapeshellarg($phpBinary);
+        $cmdArgs = "scraper:run --pages={$pages} {$imgFlag}";
+        if (PHP_OS_FAMILY === 'Windows') {
+            $command = "start /B {$phpArg} {$artisanArg} {$cmdArgs}";
+        } else {
+            $command = "nohup {$phpArg} {$artisanArg} {$cmdArgs} > /dev/null 2>&1 &";
+        }
         
         try {
             // Log intiation
             Log::info("Launching background scraper: $command");
             
             // Execute in background
-            pclose(popen($command, "r"));
+            if (PHP_OS_FAMILY === 'Windows') {
+                pclose(popen($command, "r"));
+            } else {
+                exec($command);
+            }
             
             // Return immediately saying process started
             return response()->json([
