@@ -1,0 +1,215 @@
+:root {
+  --reader-bg: #060606;
+  --reader-panel: #0d0d0d;
+  --reader-text: #f5f5f5;
+  --reader-muted: #8a8a8a;
+  --reader-border: rgba(255, 255, 255, 0.08);
+  --reader-primary: #6366f1;
+}
+
+body.reader-body {
+  background: var(--reader-bg);
+  color: var(--reader-text);
+}
+
+body.reader-body .navbar,
+body.reader-body .mobile-search-panel,
+body.reader-body .footer {
+  display: none !important;
+}
+
+.reader-main {
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--reader-bg);
+}
+
+.reader {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.reader-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(6, 6, 6, 0.95);
+  border-bottom: 1px solid var(--reader-border);
+  padding: 0.5rem clamp(12px, 4vw, 32px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.reader-topbar.is-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reader-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.reader-menu {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--reader-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--reader-text);
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.reader-topbar__title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.reader-topbar__title h1 {
+  font-size: 0.95rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--reader-text);
+}
+
+.reader-topbar__title p {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--reader-muted);
+}
+
+.reader-topbar__nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.reader-btn {
+  border: 1px solid var(--reader-border);
+  background: transparent;
+  color: var(--reader-text);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reader-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reader-btn--ghost {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.reader-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reader-btn--primary {
+  border-color: transparent;
+  background: var(--reader-primary);
+  color: #fff;
+}
+
+.reader-stage {
+  flex: 1;
+  padding: 0;
+  background: #000;
+}
+
+.reader-stage__static,
+.reader-stage__stream {
+  width: 100%;
+  max-width: 100%;
+  background: #000;
+}
+
+.reader-image,
+.reader-stage__stream img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0;
+  background: #000;
+  margin: 0 0 0.75rem;
+}
+
+.reader-stage__status {
+  text-align: center;
+  color: var(--reader-muted);
+  font-size: 0.9rem;
+}
+
+.reader-stage__empty {
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  color: var(--reader-muted);
+  border: 1px dashed var(--reader-border);
+  border-radius: 12px;
+  padding: 2rem 1rem;
+}
+
+.reader-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--reader-border);
+  background: linear-gradient(180deg, rgba(6,6,6,0) 0%, #050505 30%, #050505 100%);
+  padding: 1.25rem clamp(12px, 6vw, 32px);
+}
+
+.reader-bottom__bar {
+  display: grid;
+  grid-template-columns: 60px 1fr 60px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reader-bottom__center {
+  justify-content: center;
+  font-weight: 700;
+}
+
+.reader-bottom__arrow .reader-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .reader-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reader-topbar__nav {
+    justify-content: space-between;
+  }
+
+  .reader-bottom__bar {
+    grid-template-columns: repeat(3, minmax(50px, 1fr));
+  }
+}
