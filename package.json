@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "echo \"skip build\""
+  },
   "dependencies": {
     "puppeteer": "^24.33.0"
   }
