@@ -93,6 +93,7 @@
   const isLoggedIn = body.dataset.logged === 'true';
   const isAdminUser = body.dataset.admin === 'true';
   const avatarPlaceholder = body.dataset.avatar;
+  const isReaderPage = body.classList.contains('reader-body');
 
   // Wait for DOM to be ready
   const commentForm = document.querySelector('.comment-form');
@@ -520,7 +521,7 @@
     }
     const cards = items.map((item) => `
       <article class="manga-card">
-        <a href="/manga/${item.slug}" class="manga-card__cover" style="background-image:url('${item.cover ? item.cover : '/static/images/cover-placeholder.svg'}')">
+        <a href="/manga/${item.slug}" class="manga-card__cover" style="background-image:url('${item.cover ? item.cover : '/images/cover-placeholder.svg'}')">
           <span class="badge badge--country">${item.country || 'ID'}</span>
           ${item.isColor ? '<span class="badge badge--pill">COLOR</span>' : ''}
         </a>

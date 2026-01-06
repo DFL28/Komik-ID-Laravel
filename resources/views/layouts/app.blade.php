@@ -16,8 +16,9 @@
         <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v=6.0">
     @endif
 </head>
-<body data-logged="{{ auth()->check() ? 'true' : 'false' }}" 
+<body data-logged="{{ auth()->check() ? 'true' : 'false' }}"
       data-admin="{{ auth()->check() && auth()->user()->is_admin ? 'true' : 'false' }}"
+      data-avatar="{{ asset('images/avatar-placeholder.svg') }}"
       @if(isset($isReader) && $isReader) class="reader-body" @endif>
     
     <div class="app-shell{{ isset($isReader) && $isReader ? ' reader-shell' : '' }}">
