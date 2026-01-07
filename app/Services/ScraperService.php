@@ -47,7 +47,8 @@ class ScraperService
         $result = ['count' => 0, 'manga' => [], 'errors' => []];
 
         try {
-            $this->log("Starting Komikindo Scrape (Pages: $pages, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ")");
+            $pageLabel = $pages <= 0 ? 'auto' : (string) $pages;
+            $this->log("Starting Komikindo Scrape (Pages: {$pageLabel}, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ")");
 
             if ($reset) {
                 $this->clearMangaData();

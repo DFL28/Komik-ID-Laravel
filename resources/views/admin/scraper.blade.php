@@ -12,18 +12,12 @@
         <div class="admin-section__header">
             <div>
                 <h2 class="admin-section__title">Kontrol Scraper</h2>
-                <p class="admin-section__subtitle">Atur berapa halaman yang ingin di-scrape</p>
+                <p class="admin-section__subtitle">Scraping akan berjalan otomatis untuk semua halaman.</p>
             </div>
         </div>
 
         <form id="scraperForm" class="scraper-form">
             @csrf
-            
-            <div class="form-group">
-                <label for="pages" class="form-label">Jumlah Halaman (Daftar Manga Komikindo)</label>
-                <input type="number" id="pages" name="pages" value="1" min="0" max="300" class="form-input">
-                <span class="form-hint">Gunakan 0 untuk auto (ambil semua halaman).</span>
-            </div>
             
             <div class="form-group">
                  <label class="form-checkbox">
@@ -42,7 +36,7 @@
             </div>
             
             <button type="submit" id="submitBtn" class="btn btn--admin-primary btn--block">
-                <span>Mulai Scraping Komikindo</span>
+                <span>Mulai Scraping Komikindo (Unlimited)</span>
             </button>
         </form>
 
@@ -143,7 +137,7 @@ function startLogPolling() {
                 if (data.content.includes('Scrape session completed') || data.content.includes('FATAL ERROR')) {
                      document.getElementById('terminalStatus').innerText = 'Finished';
                      document.getElementById('submitBtn').disabled = false;
-                     document.getElementById('submitBtn').innerHTML = '<span>Mulai Scraping Komikindo</span>';
+                     document.getElementById('submitBtn').innerHTML = '<span>Mulai Scraping Komikindo (Unlimited)</span>';
                      clearInterval(logInterval);
                 }
             }

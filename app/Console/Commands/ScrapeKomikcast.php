@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class ScrapeKomikcast extends Command
 {
-    protected $signature = 'scraper:run {--pages=1} {--images=false} {--reset=false}';
-    protected $description = 'Run Komikindo Scraper in background';
+    protected $signature = 'scraper:run {--pages=0} {--images=false} {--reset=false}';
+    protected $description = 'Run Komikindo Scraper in background (0 = all pages)';
 
     protected $scraperService;
 

@@ -41,13 +41,12 @@ class AdminController extends Controller
     public function runScraper(Request $request)
     {
         // ... (validation code kept same as before) ...
-        $validated = $request->validate([
-            'pages' => 'nullable|integer|min:0|max:300',
+        $request->validate([
             'download_images' => 'nullable|boolean',
             'reset_data' => 'nullable|boolean',
         ]);
         
-        $pages = $validated['pages'] ?? 1;
+        $pages = 0; // unlimited (auto-detect total pages)
         $downloadImages = $request->has('download_images');
         $resetData = $request->has('reset_data');
         $imgFlag = $downloadImages ? '--images=true' : '--images=false';
