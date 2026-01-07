@@ -62,4 +62,12 @@ abstract class BaseScraper
         }
         return null;
     }
+
+    protected function throttle(): void
+    {
+        $delayMs = (int) config('scraper.delay_ms', 500);
+        if ($delayMs > 0) {
+            usleep($delayMs * 1000);
+        }
+    }
 }

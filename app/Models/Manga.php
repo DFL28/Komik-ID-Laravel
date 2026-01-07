@@ -19,6 +19,8 @@ class Manga extends Model
         'description',
         'cover_path',
         'author',
+        'artist',
+        'serialization',
         'status',
         'type',
         'genres',

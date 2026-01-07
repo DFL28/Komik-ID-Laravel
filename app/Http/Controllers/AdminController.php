@@ -42,20 +42,23 @@ class AdminController extends Controller
     {
         // ... (validation code kept same as before) ...
         $validated = $request->validate([
-            'pages' => 'nullable|integer|min:1|max:50',
+            'pages' => 'nullable|integer|min:0|max:300',
             'download_images' => 'nullable|boolean',
+            'reset_data' => 'nullable|boolean',
         ]);
         
         $pages = $validated['pages'] ?? 1;
         $downloadImages = $request->has('download_images');
+        $resetData = $request->has('reset_data');
         $imgFlag = $downloadImages ? '--images=true' : '--images=false';
+        $resetFlag = $resetData ? '--reset=true' : '--reset=false';
         
         // Command to run (cross-platform background execution)
         $artisanPath = base_path('artisan');
         $phpBinary = PHP_BINARY && file_exists(PHP_BINARY) ? PHP_BINARY : 'php';
         $artisanArg = escapeshellarg($artisanPath);
         $phpArg = escapeshellarg($phpBinary);
-        $cmdArgs = "scraper:run --pages={$pages} {$imgFlag}";
+        $cmdArgs = "scraper:run --pages={$pages} {$imgFlag} {$resetFlag}";
         if (PHP_OS_FAMILY === 'Windows') {
             $command = "start /B {$phpArg} {$artisanArg} {$cmdArgs}";
         } else {

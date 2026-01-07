@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
-use App\Services\Scraper\KiryuuScraper;
+use App\Services\Scraper\KomikindoScraper;
 use App\Services\ImageService;
 use App\Models\Manga;
 use App\Models\Chapter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ScraperService
@@ -18,8 +19,8 @@ class ScraperService
 
     public function __construct(ImageService $imageService, AICategorizationService $aiService)
     {
-        // Use Kiryuu Scraper (New Source)
-        $this->scraper = new KiryuuScraper();
+        // Use Komikindo as the only source
+        $this->scraper = new KomikindoScraper();
         $this->imageService = $imageService;
         $this->aiService = $aiService;
         $this->logFile = storage_path('logs/scraper.log');
@@ -37,7 +38,7 @@ class ScraperService
         Log::info("SCRAPER: $message");
     }
 
-    public function scrape(int $pages = 1, bool $downloadImages = false): array
+    public function scrape(int $pages = 1, bool $downloadImages = false, bool $reset = false): array
     {
         // Clear log at start of new scrape session
         $date = date('Y-m-d H:i:s');
@@ -46,7 +47,11 @@ class ScraperService
         $result = ['count' => 0, 'manga' => [], 'errors' => []];
 
         try {
-            $this->log("Starting Kiryuu Scrape (Pages: $pages, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ")");
+            $this->log("Starting Komikindo Scrape (Pages: $pages, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ")");
+
+            if ($reset) {
+                $this->clearMangaData();
+            }
             
             $mangaList = $this->scraper->fetchMangaList($pages);
             $this->log("Found " . count($mangaList) . " manga items to process");
@@ -97,7 +102,7 @@ class ScraperService
                         $this->log("Skipped saving content for " . $entry['title'] . " due to missing data.", 'WARN');
                     }
                     
-                    sleep(2); // Increase delay to 2s to be safer
+                    $this->delay();
                     
                 } catch (\Exception $e) {
                     $error = "Failed to scrape {$entry['title']}: " . $e->getMessage();
@@ -120,6 +125,40 @@ class ScraperService
         }
 
         return $result;
+    }
+
+    protected function delay(): void
+    {
+        $delayMs = (int) config('scraper.delay_ms', 500);
+        if ($delayMs > 0) {
+            usleep($delayMs * 1000);
+        }
+    }
+
+    protected function clearMangaData(): void
+    {
+        $this->log('Clearing existing manga data...');
+
+        $driver = DB::getDriverName();
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        } elseif ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF');
+        }
+
+        DB::table('reading_history')->truncate();
+        DB::table('comments')->truncate();
+        DB::table('bookmarks')->truncate();
+        DB::table('chapters')->truncate();
+        DB::table('manga')->truncate();
+
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        } elseif ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
+
+        $this->log('Existing manga data cleared.');
     }
 
     /**
@@ -156,6 +195,8 @@ class ScraperService
                 'description' => $data['description'] ?? null,
                 'cover_path' => $data['cover_path'] ?? null,
                 'author' => $data['author'] ?? null,
+                'artist' => $data['artist'] ?? null,
+                'serialization' => $data['serialization'] ?? null,
                 'status' => $data['status'] ?? 'ongoing',
                 'type' => $data['type'] ?? 'Manga',
                 'genres' => is_array($genres) ? implode(',', array_unique($genres)) : $genres,
