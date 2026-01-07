@@ -5,6 +5,12 @@
     <div class="auth-card">
         <h1 class="auth-title">Login</h1>
         
+        @if(session('status'))
+            <div class="alert">
+                {{ session('status') }}
+            </div>
+        @endif
+
         @if($errors->any())
             <div class="alert alert-error">
                 {{ $errors->first() }}
@@ -32,6 +38,10 @@
 
             <button type="submit" class="btn btn--primary btn--block">Login</button>
         </form>
+
+        <p class="auth-footer">
+            <a href="{{ route('password.request') }}">Lupa password?</a>
+        </p>
 
         <p class="auth-footer">
             Belum punya akun? <a href="{{ route('register') }}">Daftar di sini</a>
