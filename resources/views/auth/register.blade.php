@@ -38,7 +38,7 @@
                 <input type="password" id="password_confirmation" name="password_confirmation" required>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block">Daftar</button>
+            <button type="submit" class="btn btn--primary btn--block">Daftar</button>
         </form>
 
         <p class="auth-footer">
