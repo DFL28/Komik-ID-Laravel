@@ -9,7 +9,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register()
     {
-        //
+        $stores = config('cache.stores', []);
+        if (!isset($stores['database'])) {
+            config([
+                'cache.stores.database' => [
+                    'driver' => 'database',
+                    'table' => 'cache',
+                    'connection' => null,
+                    'lock_connection' => null,
+                ],
+            ]);
+        }
     }
 
     public function boot()
