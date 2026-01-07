@@ -5,6 +5,8 @@ return [
     'concurrency' => env('SCRAPER_CONCURRENCY', 5),
     'timeout' => env('SCRAPER_TIMEOUT', 30),
     'source_pages' => env('SCRAPER_SOURCE_PAGES', 0),
+    'batch_pages' => env('SCRAPER_BATCH_PAGES', 50),
+    'batch_cooldown_seconds' => env('SCRAPER_BATCH_COOLDOWN', 5),
     
     'sources' => [
         'komikindo' => [

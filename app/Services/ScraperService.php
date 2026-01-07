@@ -48,74 +48,55 @@ class ScraperService
 
         try {
             $pageLabel = $pages <= 0 ? 'auto' : (string) $pages;
-            $this->log("Starting Komikindo Scrape (Pages: {$pageLabel}, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ")");
+            $this->log("Starting Komikindo Scrape (Pages: {$pageLabel}, Download Images: " . ($downloadImages ? 'Yes' : 'No') . ", Reset: " . ($reset ? 'Yes' : 'No') . ")");
 
             if ($reset) {
                 $this->clearMangaData();
             }
-            
-            $mangaList = $this->scraper->fetchMangaList($pages);
-            $this->log("Found " . count($mangaList) . " manga items to process");
 
             $consecutiveEmptyChapters = 0;
+            $processed = 0;
+            $seenSlugs = [];
+            $batchSize = max(1, (int) config('scraper.batch_pages', 50));
+            $batchCooldown = max(0, (int) config('scraper.batch_cooldown_seconds', 5));
 
-            foreach ($mangaList as $index => $entry) {
-                try {
-                    $this->log("Processing [" . ($index + 1) . "/" . count($mangaList) . "]: " . $entry['title']);
-                    
-                    $mangaData = $this->scraper->fetchMangaDetail($entry);
-                    
-                    // Verify data completeness
-                    if (empty($mangaData['chapters'])) {
-                        $this->log("WARNING: No chapters found for " . $entry['title'], 'WARN');
-                        $consecutiveEmptyChapters++;
-                    } else {
-                        $this->log("Found " . count($mangaData['chapters']) . " chapters");
-                        $consecutiveEmptyChapters = 0; // Reset counter on success
+            if ($pages <= 0) {
+                $page = 1;
+                $totalPages = 1;
+                $batchStart = 1;
+
+                while ($page <= $totalPages) {
+                    $this->log("Fetching list page {$page}...");
+                    try {
+                        $pageItems = $this->scraper->fetchMangaListPage($page, $totalPages);
+                    } catch (\Exception $e) {
+                        $this->log("Failed to fetch list page {$page}: " . $e->getMessage(), 'ERROR');
+                        break;
                     }
-                    
-                    // CIRCUIT BREAKER: Stop if 5 consecutive mangas imply we are blocked
-                    if ($consecutiveEmptyChapters >= 5) {
-                        throw new \Exception("Aborting scrape: Too many consecutive failures (5). You might be rate-limited or blocked by the source. Please try again later.");
+
+                    if ($page === 1) {
+                        $this->log("Detected {$totalPages} list pages");
+                        $this->log("Batch mode: {$batchSize} pages per batch");
                     }
-                    
-                    // Only download cover if we have valid manga data
-                    if ($downloadImages && $mangaData['cover_path']) {
-                        $this->log("Downloading cover...");
-                        $localCoverPath = $this->imageService->downloadCover(
-                            $mangaData['cover_path'],
-                            $mangaData['slug']
-                        );
-                        if ($localCoverPath) {
-                            $mangaData['cover_path'] = $localCoverPath;
-                        }
+
+                    $this->log("Fetched list page {$page}/{$totalPages} (" . count($pageItems) . " items)");
+                    $pageItems = $this->dedupeEntries($pageItems, $seenSlugs);
+                    $this->processMangaEntries($pageItems, $result, $processed, $consecutiveEmptyChapters, $downloadImages);
+
+                    if ($batchSize > 0 && ($page % $batchSize === 0 || $page === $totalPages)) {
+                        $batchEnd = $page;
+                        $this->checkpointBatch($batchStart, $batchEnd, $batchCooldown);
+                        $batchStart = $page + 1;
                     }
-                    
-                    $manga = $this->saveManga($mangaData);
-                    
-                    if ($manga && !empty($mangaData['chapters'])) {
-                        $this->saveChapters($manga, $mangaData['chapters']);
-                        // Only log success if we actually got content
-                        $this->log("Success: " . $manga->title);
-                        $result['count']++;
-                        $result['manga'][] = $manga->title;
-                    } else {
-                        $this->log("Skipped saving content for " . $entry['title'] . " due to missing data.", 'WARN');
-                    }
-                    
+
+                    $page++;
                     $this->delay();
-                    
-                } catch (\Exception $e) {
-                    $error = "Failed to scrape {$entry['title']}: " . $e->getMessage();
-                    $this->log($error, 'ERROR');
-                    $result['errors'][] = $error;
-                    
-                    // If fatal abortion, rethrow
-                    if (str_contains($e->getMessage(), 'Aborting scrape')) {
-                        throw $e;
-                    }
-                    continue;
                 }
+            } else {
+                $mangaList = $this->scraper->fetchMangaList($pages);
+                $this->log("Found " . count($mangaList) . " manga items to process");
+                $mangaList = $this->dedupeEntries($mangaList, $seenSlugs);
+                $this->processMangaEntries($mangaList, $result, $processed, $consecutiveEmptyChapters, $downloadImages);
             }
             
             $this->log("Scrape session completed. Total: " . $result['count']);
@@ -126,6 +107,119 @@ class ScraperService
         }
 
         return $result;
+    }
+
+    public function clearMangaDataManual(): void
+    {
+        $this->clearMangaData();
+    }
+
+    protected function checkpointBatch(int $start, int $end, int $cooldownSeconds): void
+    {
+        $this->log("Batch checkpoint saved (pages {$start}-{$end}).");
+
+        $checkpoint = [
+            'start_page' => $start,
+            'end_page' => $end,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ];
+
+        $checkpointPath = storage_path('app/scraper_checkpoint.json');
+        @file_put_contents($checkpointPath, json_encode($checkpoint));
+
+        if ($cooldownSeconds > 0) {
+            $this->log("Cooldown {$cooldownSeconds}s before next batch...");
+            sleep($cooldownSeconds);
+        }
+
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+    }
+
+    protected function processMangaEntries(array $entries, array &$result, int &$processed, int &$consecutiveEmptyChapters, bool $downloadImages): void
+    {
+        foreach ($entries as $entry) {
+            try {
+                $processed++;
+                $this->log("Processing [{$processed}]: " . $entry['title']);
+
+                $mangaData = $this->scraper->fetchMangaDetail($entry);
+
+                // Verify data completeness
+                if (empty($mangaData['chapters'])) {
+                    $this->log("WARNING: No chapters found for " . $entry['title'], 'WARN');
+                    $consecutiveEmptyChapters++;
+                } else {
+                    $this->log("Found " . count($mangaData['chapters']) . " chapters");
+                    $consecutiveEmptyChapters = 0; // Reset counter on success
+                }
+
+                // CIRCUIT BREAKER: Stop if 5 consecutive mangas imply we are blocked
+                if ($consecutiveEmptyChapters >= 5) {
+                    throw new \Exception("Aborting scrape: Too many consecutive failures (5). You might be rate-limited or blocked by the source. Please try again later.");
+                }
+
+                // Always cache cover locally when possible
+                if (!empty($mangaData['cover_path'])) {
+                    $existingCover = Manga::where('slug', $mangaData['slug'])->value('cover_path');
+                    if ($existingCover && !str_starts_with($existingCover, 'http')) {
+                        $mangaData['cover_path'] = $existingCover;
+                    } elseif (str_starts_with($mangaData['cover_path'], 'http')) {
+                        $this->log("Caching cover...");
+                        $localCoverPath = $this->imageService->downloadCover(
+                            $mangaData['cover_path'],
+                            $mangaData['slug']
+                        );
+                        if ($localCoverPath) {
+                            $mangaData['cover_path'] = $localCoverPath;
+                        }
+                    }
+                }
+
+                $manga = $this->saveManga($mangaData);
+
+                if ($manga && !empty($mangaData['chapters'])) {
+                    $this->saveChapters($manga, $mangaData['chapters']);
+                    // Only log success if we actually got content
+                    $this->log("Success: " . $manga->title);
+                    $result['count']++;
+                    $result['manga'][] = $manga->title;
+                } else {
+                    $this->log("Skipped saving content for " . $entry['title'] . " due to missing data.", 'WARN');
+                }
+
+                $this->delay();
+
+            } catch (\Exception $e) {
+                $error = "Failed to scrape {$entry['title']}: " . $e->getMessage();
+                $this->log($error, 'ERROR');
+                $result['errors'][] = $error;
+
+                // If fatal abortion, rethrow
+                if (str_contains($e->getMessage(), 'Aborting scrape')) {
+                    throw $e;
+                }
+                continue;
+            }
+        }
+    }
+
+    protected function dedupeEntries(array $entries, array &$seenSlugs): array
+    {
+        $unique = [];
+
+        foreach ($entries as $entry) {
+            $slug = $entry['slug'] ?? null;
+            if (!$slug || isset($seenSlugs[$slug])) {
+                continue;
+            }
+
+            $seenSlugs[$slug] = true;
+            $unique[] = $entry;
+        }
+
+        return $unique;
     }
 
     protected function delay(): void

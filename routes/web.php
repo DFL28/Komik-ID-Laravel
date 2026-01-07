@@ -9,6 +9,7 @@ use App\Http\Controllers\ChapterController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\MangaController as AdminMangaController;
 use App\Http\Controllers\ImageProxyController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +65,14 @@ Route::prefix('admin')->group(function () {
     Route::get('/scraper', [AdminController::class, 'scraper'])->name('admin.scraper');
     Route::get('/scraper/log', [AdminController::class, 'getScraperLog'])->name('admin.scraper.log');
     Route::post('/scraper/run', [AdminController::class, 'runScraper'])->name('admin.scraper.run');
+    Route::post('/scraper/clear', [AdminController::class, 'clearScraperData'])->name('admin.scraper.clear');
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
     Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
+    Route::get('/manga', [AdminMangaController::class, 'index'])->name('admin.manga.index');
+    Route::get('/manga/create', [AdminMangaController::class, 'create'])->name('admin.manga.create');
+    Route::post('/manga', [AdminMangaController::class, 'store'])->name('admin.manga.store');
+    Route::get('/manga/{manga}/edit', [AdminMangaController::class, 'edit'])->name('admin.manga.edit');
+    Route::put('/manga/{manga}', [AdminMangaController::class, 'update'])->name('admin.manga.update');
+    Route::delete('/manga/{manga}', [AdminMangaController::class, 'destroy'])->name('admin.manga.destroy');
 });

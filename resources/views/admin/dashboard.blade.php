@@ -44,6 +44,7 @@
     </div>
 
     <div class="admin-actions">
+        <a href="{{ route('admin.manga.index') }}" class="btn btn-primary">Kelola Manga</a>
         <a href="{{ route('admin.scraper') }}" class="btn btn-primary">Kelola Scraper</a>
         <a href="{{ route('admin.users') }}" class="btn btn-secondary">Kelola Users</a>
     </div>

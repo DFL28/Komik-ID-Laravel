@@ -41,14 +41,11 @@ class AdminController extends Controller
     public function runScraper(Request $request)
     {
         // ... (validation code kept same as before) ...
-        $request->validate([
-            'download_images' => 'nullable|boolean',
-            'reset_data' => 'nullable|boolean',
-        ]);
+        $request->validate([]);
         
         $pages = 0; // unlimited (auto-detect total pages)
-        $downloadImages = $request->has('download_images');
-        $resetData = $request->has('reset_data');
+        $downloadImages = false;
+        $resetData = false;
         $imgFlag = $downloadImages ? '--images=true' : '--images=false';
         $resetFlag = $resetData ? '--reset=true' : '--reset=false';
         
@@ -59,7 +56,7 @@ class AdminController extends Controller
         $phpArg = escapeshellarg($phpBinary);
         $cmdArgs = "scraper:run --pages={$pages} {$imgFlag} {$resetFlag}";
         if (PHP_OS_FAMILY === 'Windows') {
-            $command = "start /B {$phpArg} {$artisanArg} {$cmdArgs}";
+            $command = "cmd /c start \"\" /B {$phpArg} {$artisanArg} {$cmdArgs}";
         } else {
             $command = "nohup {$phpArg} {$artisanArg} {$cmdArgs} > /dev/null 2>&1 &";
         }
@@ -90,6 +87,24 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memulai scraper: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function clearScraperData()
+    {
+        try {
+            $this->scraperService->clearMangaDataManual();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data manga berhasil dihapus.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to clear manga data: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data: ' . $e->getMessage(),
             ], 500);
         }
     }

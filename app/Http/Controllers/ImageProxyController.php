@@ -36,19 +36,27 @@ class ImageProxyController extends Controller
         // Check memory cache (2 hour)
         $imageData = Cache::remember($cacheKey, 7200, function () use ($url) {
             try {
+                $referer = 'https://komikindo.ch/';
+
                 // Fetch image from external source
                 $response = Http::timeout(30)
                     ->withHeaders([
                         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Referer' => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST),
+                        'Referer' => $referer,
                         'Accept' => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                        'Accept-Language' => 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
                     ])
                     ->get($url);
                 
                 if ($response->successful()) {
                     return $response->body();
                 }
-                
+
+                \Log::warning("Image proxy non-success", [
+                    'status' => $response->status(),
+                    'url' => $url,
+                ]);
+
                 return null;
             } catch (\Exception $e) {
                 \Log::error("Image proxy error for {$url}: " . $e->getMessage());

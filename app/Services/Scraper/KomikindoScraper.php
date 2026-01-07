@@ -43,6 +43,24 @@ class KomikindoScraper extends BaseScraper
         return array_values($unique);
     }
 
+    public function fetchMangaListPage(int $page, ?int &$totalPages = null): array
+    {
+        $url = $page <= 1
+            ? $this->baseUrl . $this->listPath
+            : "{$this->baseUrl}{$this->listPath}page/{$page}/";
+
+        $html = $this->get($url);
+
+        if ($page === 1) {
+            $detected = $this->detectTotalPages($html);
+            if ($totalPages !== null) {
+                $totalPages = $detected;
+            }
+        }
+
+        return $this->parseMangaList($html);
+    }
+
     public function fetchMangaDetail(array $entry): array
     {
         $html = $this->get($entry['detailUrl']);
@@ -106,7 +124,16 @@ class KomikindoScraper extends BaseScraper
 
         $images = [];
         foreach ($dom->find('#chimg-auh img, .reader-area img') as $img) {
-            $imgUrl = $img->getAttribute('data-src') ?? $img->getAttribute('src');
+            $imgUrl = $img->getAttribute('data-src');
+            if (!$imgUrl) {
+                $imgUrl = $img->getAttribute('data-lazy-src');
+            }
+            if (!$imgUrl) {
+                $imgUrl = $img->getAttribute('data-original');
+            }
+            if (!$imgUrl) {
+                $imgUrl = $img->getAttribute('src');
+            }
             if ($imgUrl) {
                 $images[] = $this->absoluteUrl($this->baseUrl, $imgUrl);
             }

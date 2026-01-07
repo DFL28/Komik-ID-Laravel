@@ -552,6 +552,117 @@
   transition: width var(--transition-slow);
 }
 
+/* Admin filter bar */
+.admin-filter {
+  margin-bottom: var(--spacing-lg);
+}
+
+.admin-filter__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: var(--spacing-md);
+  align-items: end;
+}
+
+.admin-filter .filter-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-filter input,
+.admin-filter select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.admin-filter__actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.admin-form-actions {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.text-muted {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+/* Scraper danger zone */
+.scraper-danger-zone {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.scraper-danger-zone h3 {
+  margin: 0 0 var(--spacing-xs);
+  font-size: 1rem;
+  color: var(--admin-danger);
+}
+
+.scraper-danger-zone p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Admin sidebar grouping */
+.sidebar__section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sidebar__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-sm);
+}
+
+.sidebar__sublink {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  margin-left: 0.5rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.sidebar__sublink:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.sidebar__sublink.is-active {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+
 /* ============================================
    RESPONSIVE ADMIN
    ============================================ */
@@ -579,5 +690,9 @@
   .table th,
   .table td {
     padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .admin-filter__row {
+    grid-template-columns: 1fr;
   }
 }

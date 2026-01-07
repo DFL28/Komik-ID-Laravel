@@ -12,33 +12,27 @@
         <div class="admin-section__header">
             <div>
                 <h2 class="admin-section__title">Kontrol Scraper</h2>
-                <p class="admin-section__subtitle">Scraping akan berjalan otomatis untuk semua halaman.</p>
+                <p class="admin-section__subtitle">Scraping berjalan unlimited. Hapus data lama memakai tombol khusus.</p>
             </div>
         </div>
 
         <form id="scraperForm" class="scraper-form">
             @csrf
             
-            <div class="form-group">
-                 <label class="form-checkbox">
-                    <input type="checkbox" id="download_images" name="download_images" value="1">
-                    <span>Download Gambar (Cover & Chapter)</span>
-                 </label>
-                 <span class="form-hint">Download gambar lokal (lambat & boros space). Uncheck untuk mode cepat (Remote Image).</span>
-            </div>
-
-            <div class="form-group">
-                 <label class="form-checkbox">
-                    <input type="checkbox" id="reset_data" name="reset_data" value="1">
-                    <span>Hapus data komik lama sebelum scrape</span>
-                 </label>
-                 <span class="form-hint">Ini akan menghapus manga, chapter, bookmark, komentar, dan riwayat baca.</span>
-            </div>
-            
             <button type="submit" id="submitBtn" class="btn btn--admin-primary btn--block">
-                <span>Mulai Scraping Komikindo (Unlimited)</span>
+                <span>Mulai Scraping Komikindo</span>
             </button>
         </form>
+
+        <div class="scraper-danger-zone">
+            <div class="scraper-danger-zone__text">
+                <h3>Hapus Data Lama</h3>
+                <p>Tombol ini akan menghapus semua manga, chapter, bookmark, komentar, dan riwayat baca.</p>
+            </div>
+            <button type="button" id="clearDataBtn" class="btn btn--danger">
+                Hapus Data Lama
+            </button>
+        </div>
 
         <!-- Terminal Log Viewer -->
         <div class="terminal-window" id="terminalWindow" style="display:none; margin-top: 20px;">
@@ -108,13 +102,30 @@
 
 <script>
 let logInterval;
+const scraperStorageKey = 'komikid_scraper_running';
 const content = document.getElementById('terminalContent');
+const submitBtn = document.getElementById('submitBtn');
+const status = document.getElementById('scraperStatus');
+
+function setScraperUiRunning(isRunning) {
+    if (isRunning) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Scraping berjalan...</span>';
+        status.style.display = 'block';
+        status.className = 'scraper-status scraper-status--loading';
+        status.innerHTML = '<h3>Scraper sedang berjalan di background.</h3>';
+    } else {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Mulai Scraping Komikindo</span>';
+    }
+}
 
 function startLogPolling() {
     // Show window
     document.getElementById('terminalWindow').style.display = 'flex';
     document.getElementById('terminalStatus').innerText = 'Running';
     content.innerText = 'Initializing...';
+    localStorage.setItem(scraperStorageKey, '1');
     
     // Clear previous interval if any
     if(logInterval) clearInterval(logInterval);
@@ -136,8 +147,8 @@ function startLogPolling() {
                 // Auto-stop if we see completion message
                 if (data.content.includes('Scrape session completed') || data.content.includes('FATAL ERROR')) {
                      document.getElementById('terminalStatus').innerText = 'Finished';
-                     document.getElementById('submitBtn').disabled = false;
-                     document.getElementById('submitBtn').innerHTML = '<span>Mulai Scraping Komikindo (Unlimited)</span>';
+                     localStorage.removeItem(scraperStorageKey);
+                     setScraperUiRunning(false);
                      clearInterval(logInterval);
                 }
             }
@@ -150,19 +161,19 @@ function startLogPolling() {
 function stopLogPolling() {
     clearInterval(logInterval);
     document.getElementById('terminalStatus').innerText = 'Stopped';
+    localStorage.removeItem(scraperStorageKey);
+    setScraperUiRunning(false);
 }
 
 document.getElementById('scraperForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    const status = document.getElementById('scraperStatus');
-    const submitBtn = document.getElementById('submitBtn');
     
     // Show terminal immediately
     status.style.display = 'block';
     status.className = 'scraper-status scraper-status--loading';
     status.innerHTML = `<h3>Memulai background process...</h3>`;
     submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Scraping berjalan...</span>';
     
     startLogPolling();
     
@@ -186,12 +197,51 @@ document.getElementById('scraperForm').addEventListener('submit', async function
         } else {
             status.innerHTML = `<h3>Gagal memulai: ${data.message}</h3>`;
              stopLogPolling();
-             submitBtn.disabled = false;
         }
     } catch (error) {
          status.innerHTML = `<h3>Error Connect: ${error.message}</h3>`;
          stopLogPolling();
-         submitBtn.disabled = false;
+    }
+});
+
+document.getElementById('clearDataBtn').addEventListener('click', async function() {
+    const confirmClear = confirm('Yakin ingin menghapus semua data manga lama? Tindakan ini tidak bisa dibatalkan.');
+    if (!confirmClear) {
+        return;
+    }
+
+    const status = document.getElementById('scraperStatus');
+    status.style.display = 'block';
+    status.className = 'scraper-status scraper-status--loading';
+    status.innerHTML = `<h3>Menghapus data lama...</h3>`;
+
+    try {
+        const response = await fetch('{{ route("admin.scraper.clear") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            status.className = 'scraper-status scraper-status--success';
+            status.innerHTML = `<h3>${data.message}</h3>`;
+        } else {
+            status.className = 'scraper-status scraper-status--error';
+            status.innerHTML = `<h3>${data.message}</h3>`;
+        }
+    } catch (error) {
+        status.className = 'scraper-status scraper-status--error';
+        status.innerHTML = `<h3>Error: ${error.message}</h3>`;
+    }
+});
+
+window.addEventListener('load', () => {
+    if (localStorage.getItem(scraperStorageKey) === '1') {
+        setScraperUiRunning(true);
+        startLogPolling();
     }
 });
 </script>

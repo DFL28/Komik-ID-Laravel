@@ -26,7 +26,6 @@
         <header class="navbar">
             <div class="brand">
                 <span class="brand__title">Komik-ID</span>
-                <span class="brand__tagline">Baca Manga Gratis</span>
             </div>
             <form class="navbar__search navbar__search--desktop" method="get" action="{{ route('search') }}">
                 <input type="text" name="q" value="{{ $searchQuery ?? '' }}" placeholder="Cari judul manga..." aria-label="Cari judul">
@@ -84,7 +83,14 @@
                 @auth
                     <a class="sidebar__link" href="{{ route('profile') }}">Profil</a>
                     @if(auth()->user()->is_admin)
-                        <a class="sidebar__link{{ request()->is('admin*') ? ' is-active' : '' }}" href="{{ route('admin.dashboard') }}">Admin Panel</a>
+                        <div class="sidebar__section">
+                            <div class="sidebar__section-title">Admin Panel</div>
+                            <a class="sidebar__sublink{{ request()->routeIs('admin.dashboard') ? ' is-active' : '' }}" href="{{ route('admin.dashboard') }}">Dashboard</a>
+                            <a class="sidebar__sublink{{ request()->routeIs('admin.manga.index') ? ' is-active' : '' }}" href="{{ route('admin.manga.index') }}">Manga</a>
+                            <a class="sidebar__sublink{{ request()->routeIs('admin.manga.create') ? ' is-active' : '' }}" href="{{ route('admin.manga.create') }}">Tambah Manga</a>
+                            <a class="sidebar__sublink{{ request()->routeIs('admin.scraper') ? ' is-active' : '' }}" href="{{ route('admin.scraper') }}">Scraper</a>
+                            <a class="sidebar__sublink{{ request()->routeIs('admin.users') ? ' is-active' : '' }}" href="{{ route('admin.users') }}">Users</a>
+                        </div>
                     @endif
                     <form method="post" action="{{ route('logout') }}">
                         @csrf

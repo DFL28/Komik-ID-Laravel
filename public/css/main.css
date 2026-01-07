@@ -408,7 +408,7 @@ input, textarea, select {
 
 @media (max-width: 768px) {
   .app-main {
-    padding: calc(72px + var(--spacing-md)) var(--spacing-md) var(--spacing-xl);
+    padding: calc(72px + var(--spacing-sm)) var(--spacing-sm) var(--spacing-lg);
   }
 }
 
@@ -642,11 +642,25 @@ input, textarea, select {
 @media (max-width: 768px) {
   .navbar {
     height: 64px;
-    padding: 0 var(--spacing-md);
+    padding: 0 var(--spacing-sm);
+    gap: var(--spacing-md);
+  }
+
+  .brand {
+    min-width: 0;
   }
   
   .brand__title {
     font-size: 1.25rem;
+  }
+
+  .navbar__icons {
+    gap: var(--spacing-xs);
+  }
+
+  .icon-button {
+    width: 40px;
+    height: 40px;
   }
   
   .navbar__search--desktop {
@@ -654,8 +668,18 @@ input, textarea, select {
   }
   
   .manga-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: var(--spacing-md);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    height: 58px;
+  }
+
+  .brand__title {
+    font-size: 1.1rem;
   }
 }
 
@@ -1098,3 +1122,7 @@ input, textarea, select {
   border: 1px solid rgba(239, 68, 68, 0.35);
   color: #fecaca;
 }
+
+
+
+

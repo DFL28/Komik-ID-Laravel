@@ -119,40 +119,127 @@ class MangaController extends Controller
     public function genre(Request $request)
     {
         $genre = $request->get('genre');
+        $status = $request->get('status');
+        $contentType = $request->get('content_type');
+        $type = $request->get('type');
+        $order = $request->get('order', 'default');
+        $color = $request->get('color');
+
         $genres = $this->getAllGenres();
-        
+
         $query = Manga::query();
-        
+
         if ($genre) {
             $query->byGenre($genre);
         }
-        
-        $manga = $query->latest()->paginate(20);
-        
-        return view('genre', compact('manga', 'genres', 'genre'));
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($contentType) {
+            $query->where('type', $contentType);
+        }
+
+        if ($type) {
+            $query->where('content_type', $type);
+        }
+
+        if ($color === 'color') {
+            $query->where('content_type', 'color');
+        } elseif ($color === 'bw') {
+            $query->where(function ($q) {
+                $q->whereNull('content_type')
+                  ->orWhere('content_type', '!=', 'color');
+            });
+        }
+
+        switch ($order) {
+            case 'latest':
+                $query->orderBy('last_chapter_at', 'desc');
+                break;
+            case 'popular':
+                $query->withCount('bookmarks')
+                      ->orderBy('bookmarks_count', 'desc');
+                break;
+            case 'rating':
+                $query->orderBy('rating', 'desc');
+                break;
+            case 'title':
+                $query->orderBy('title');
+                break;
+            default:
+                $query->orderBy('updated_at', 'desc');
+        }
+
+        $manga = $query->paginate(20)->appends($request->query());
+
+        $contentTypes = Manga::query()
+            ->whereNotNull('type')
+            ->select('type')
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type')
+            ->toArray();
+
+        $typeOptions = Manga::query()
+            ->whereNotNull('content_type')
+            ->select('content_type')
+            ->distinct()
+            ->orderBy('content_type')
+            ->pluck('content_type')
+            ->toArray();
+
+        return view('genre', compact(
+            'manga',
+            'genres',
+            'genre',
+            'status',
+            'contentType',
+            'type',
+            'order',
+            'color',
+            'contentTypes',
+            'typeOptions'
+        ));
     }
 
-    public function toggleBookmark($slug)
+    public function toggleBookmark(Request $request, $slug)
     {
         if (!auth()->check()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
             return redirect()->route('login');
         }
         
         $manga = Manga::where('slug', $slug)->firstOrFail();
         
-        $bookmark = Bookmark::where('user_id', auth()->id())
-            ->where('manga_id', $manga->id)
-            ->first();
-        
-        if ($bookmark) {
-            $bookmark->delete();
+        $bookmarkQuery = Bookmark::where('user_id', auth()->id())
+            ->where('manga_id', $manga->id);
+
+        $bookmarked = false;
+        if ($bookmarkQuery->exists()) {
+            $bookmarkQuery->delete();
+            $bookmarked = false;
         } else {
-            Bookmark::create([
+            Bookmark::firstOrCreate([
                 'user_id' => auth()->id(),
                 'manga_id' => $manga->id,
             ]);
+            $bookmarked = true;
         }
-        
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'bookmarked' => $bookmarked,
+            ]);
+        }
+
         return back();
     }
 

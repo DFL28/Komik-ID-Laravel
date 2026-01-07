@@ -35,7 +35,7 @@
                 
                 <!-- Synopsis -->
                 <div class="manga-synopsis">
-                    <h3 class="manga-synopsis__title">Synopsis sekai Meikyuu de Harem o</h3>
+                    <h3 class="manga-synopsis__title">Synopsis {{ $manga->title }}</h3>
                     <p class="manga-synopsis__text">
                         {{ $manga->description ?? 'Belum ada sinopsis tersedia untuk manga ini.' }}
                     </p>
@@ -119,7 +119,7 @@
         <!-- Chapter List Section -->
         <div class="manga-chapters-section">
             <div class="manga-chapters-section__header">
-                <h2>Chapter Isekai Meikyuu de Harem o</h2>
+                <h2>Chapter {{ $manga->title }}</h2>
             </div>
             
             @if($chapters->isEmpty())
@@ -138,6 +138,69 @@
                     @endforeach
                 </div>
             @endif
+        </div>
+
+        <!-- Comments Section -->
+        <div class="manga-comments-section" id="komentar">
+            <div class="manga-comments-section__header">
+                <h2>Komentar <span class="comment-count" id="commentTotal">{{ $commentsCount }}</span></h2>
+                <p class="manga-comments-section__subtitle">Tulis komentar kamu tentang komik ini.</p>
+            </div>
+
+            <div class="comment-composer">
+                @auth
+                    <div class="comment-composer__avatar">
+                        <img src="{{ resolveMedia(auth()->user()->avatar_path, '/images/avatar-placeholder.png') }}" alt="Avatar">
+                    </div>
+                    <div class="comment-composer__body">
+                        <textarea id="commentInput" class="comment-composer__input" rows="4" maxlength="1000" placeholder="Tulis komentar di sini..."></textarea>
+                        <div class="comment-composer__footer">
+                            <span class="comment-composer__count" id="commentCount">0/1000</span>
+                            <button type="button" class="comment-composer__submit" id="commentSubmit">Kirim</button>
+                        </div>
+                        <p class="comment-composer__error" id="commentError"></p>
+                    </div>
+                @else
+                    <div class="comment-composer__guest">
+                        <p>Kamu harus login dulu untuk komentar.</p>
+                        <a class="comment-composer__login" href="{{ route('login') }}">Login</a>
+                    </div>
+                @endauth
+            </div>
+
+            <div class="comment-list" id="commentList">
+                @forelse($comments as $comment)
+                    <article class="comment-card" data-comment-id="{{ $comment->id }}">
+                        <div class="comment-card__avatar">
+                            <img src="{{ resolveMedia($comment->user->avatar_path, '/images/avatar-placeholder.png') }}" alt="{{ $comment->user->username }}">
+                        </div>
+                        <div class="comment-card__body">
+                            <div class="comment-card__header">
+                                <span class="comment-card__user">{{ $comment->user->username }}</span>
+                                <span class="comment-card__time">{{ $comment->created_at->diffForHumans() }}</span>
+                            </div>
+                            <div class="comment-card__content">{!! nl2br(e($comment->content)) !!}</div>
+                        </div>
+                    </article>
+
+                    @foreach($comment->replies as $reply)
+                        <article class="comment-card comment-card--reply" data-comment-id="{{ $reply->id }}">
+                            <div class="comment-card__avatar">
+                                <img src="{{ resolveMedia($reply->user->avatar_path, '/images/avatar-placeholder.png') }}" alt="{{ $reply->user->username }}">
+                            </div>
+                            <div class="comment-card__body">
+                                <div class="comment-card__header">
+                                    <span class="comment-card__user">{{ $reply->user->username }}</span>
+                                    <span class="comment-card__time">{{ $reply->created_at->diffForHumans() }}</span>
+                                </div>
+                                <div class="comment-card__content">{!! nl2br(e($reply->content)) !!}</div>
+                            </div>
+                        </article>
+                    @endforeach
+                @empty
+                    <p class="comment-empty" id="commentEmpty">Belum ada komentar.</p>
+                @endforelse
+            </div>
         </div>
         
         <!-- Related Series Section -->
@@ -437,6 +500,27 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+}
+
+.chapter-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chapter-list::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+.chapter-list::-webkit-scrollbar-thumb {
+    background: var(--border-medium);
+    border-radius: 999px;
+}
+
+.chapter-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }
 
 .chapter-item {
@@ -470,6 +554,227 @@
 .chapter-item__date {
     font-size: 0.8rem;
     color: var(--text-tertiary);
+}
+
+/* ============================================
+   COMMENTS SECTION
+   ============================================ */
+.manga-comments-section {
+    margin-bottom: var(--spacing-2xl);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-2xl);
+}
+
+.manga-comments-section__header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.manga-comments-section__header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.manga-comments-section__subtitle {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 0.95rem;
+}
+
+.comment-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0 var(--spacing-sm);
+    height: 28px;
+    border-radius: 999px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.comment-composer {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.comment-composer__avatar img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-medium);
+}
+
+.comment-composer__input {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    padding: var(--spacing-md);
+    resize: vertical;
+    min-height: 120px;
+}
+
+.comment-composer__input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.comment-composer__footer {
+    margin-top: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.comment-composer__count {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+}
+
+.comment-composer__submit {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.comment-composer__submit:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.comment-composer__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.comment-composer__error {
+    margin-top: var(--spacing-sm);
+    color: var(--danger);
+    font-size: 0.85rem;
+    min-height: 1.2em;
+}
+
+.comment-composer__guest {
+    width: 100%;
+    padding: var(--spacing-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.comment-composer__login {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+}
+
+.comment-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comment-list::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+}
+
+.comment-list::-webkit-scrollbar-thumb {
+    background: var(--border-medium);
+    border-radius: 999px;
+}
+
+.comment-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+.comment-card {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.comment-card--reply {
+    margin-left: 44px;
+    background: var(--bg-elevated);
+}
+
+.comment-card__avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-medium);
+}
+
+.comment-card__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.comment-card__user {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.comment-card__time {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+.comment-card__content {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.comment-empty {
+    color: var(--text-tertiary);
+    margin: 0;
 }
 
 /* ============================================
@@ -575,6 +880,27 @@
     .chapter-list {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--spacing-sm);
+        max-height: 360px;
+    }
+
+    .manga-comments-section {
+        padding: var(--spacing-lg);
+    }
+
+    .comment-composer {
+        grid-template-columns: 1fr;
+    }
+
+    .comment-composer__avatar {
+        display: none;
+    }
+
+    .comment-list {
+        max-height: 420px;
+    }
+
+    .comment-card--reply {
+        margin-left: 20px;
     }
     
     .chapter-item {
@@ -601,23 +927,188 @@ function toggleBookmark(slug) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '{{ route("login") }}';
+                return Promise.reject(new Error('Unauthorized'));
+            }
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text || 'Request failed');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data || !data.success) {
+                console.warn('Bookmark update failed', data);
+                return;
+            }
             const btn = document.querySelector('.manga-hero__bookmark');
             if (data.bookmarked) {
                 btn.classList.add('active');
-                btn.innerHTML = '<span>🔖</span> Bookmarked';
+                btn.textContent = 'Bookmarked';
             } else {
                 btn.classList.remove('active');
-                btn.innerHTML = '<span>🔖</span> Bookmark';
+                btn.textContent = 'Bookmark';
             }
+        })
+        .catch(error => {
+            console.warn('Bookmark request failed', error);
         });
     @else
         window.location.href = '{{ route("login") }}';
     @endauth
 }
+
+const commentInput = document.getElementById('commentInput');
+const commentCount = document.getElementById('commentCount');
+const commentSubmit = document.getElementById('commentSubmit');
+const commentError = document.getElementById('commentError');
+const commentList = document.getElementById('commentList');
+const commentTotal = document.getElementById('commentTotal');
+const commentEmpty = document.getElementById('commentEmpty');
+const commentMaxLength = 1000;
+const storageBase = '{{ asset('storage') }}';
+const avatarFallback = '{{ asset('images/avatar-placeholder.png') }}';
+
+function getAvatarUrl(path) {
+    if (!path) {
+        return avatarFallback;
+    }
+    if (path.startsWith('http')) {
+        return path;
+    }
+    return `${storageBase}/${path}`;
+}
+
+function updateCommentCount() {
+    if (!commentInput || !commentCount) {
+        return;
+    }
+    commentCount.textContent = `${commentInput.value.length}/${commentMaxLength}`;
+}
+
+function buildCommentCard(comment) {
+    const card = document.createElement('article');
+    card.className = 'comment-card';
+    card.dataset.commentId = comment.id;
+
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'comment-card__avatar';
+    const avatarImg = document.createElement('img');
+    avatarImg.src = getAvatarUrl(comment.user?.avatar_path);
+    avatarImg.alt = comment.user?.username || 'User';
+    avatarWrap.appendChild(avatarImg);
+
+    const body = document.createElement('div');
+    body.className = 'comment-card__body';
+
+    const header = document.createElement('div');
+    header.className = 'comment-card__header';
+
+    const user = document.createElement('span');
+    user.className = 'comment-card__user';
+    user.textContent = comment.user?.username || 'User';
+
+    const time = document.createElement('span');
+    time.className = 'comment-card__time';
+    time.textContent = 'baru saja';
+
+    header.appendChild(user);
+    header.appendChild(time);
+
+    const content = document.createElement('div');
+    content.className = 'comment-card__content';
+    content.textContent = comment.content || '';
+
+    body.appendChild(header);
+    body.appendChild(content);
+
+    card.appendChild(avatarWrap);
+    card.appendChild(body);
+
+    return card;
+}
+
+if (commentInput) {
+    updateCommentCount();
+    commentInput.addEventListener('input', updateCommentCount);
+}
+
+if (commentSubmit && commentInput) {
+    commentSubmit.addEventListener('click', () => {
+        const content = commentInput.value.trim();
+        if (!content) {
+            commentError.textContent = 'Komentar tidak boleh kosong.';
+            return;
+        }
+        commentError.textContent = '';
+        commentSubmit.disabled = true;
+
+        fetch('/api/comments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                manga_id: {{ $manga->id }},
+                content: content
+            })
+        })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '{{ route("login") }}';
+                return Promise.reject(new Error('Unauthorized'));
+            }
+            if (!response.ok) {
+                return response.text().then(text => {
+                    let message = text || 'Request failed';
+                    try {
+                        const data = JSON.parse(text);
+                        message = data.message || data.error || message;
+                    } catch (error) {
+                        // ignore JSON parse errors
+                    }
+                    throw new Error(message);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data || !data.success) {
+                throw new Error('Request failed');
+            }
+            const card = buildCommentCard(data.comment);
+            if (commentEmpty) {
+                commentEmpty.remove();
+            }
+            commentList.prepend(card);
+            commentInput.value = '';
+            updateCommentCount();
+            if (commentTotal) {
+                const total = parseInt(commentTotal.textContent || '0', 10);
+                commentTotal.textContent = total + 1;
+            }
+        })
+        .catch(error => {
+            console.warn('Comment request failed', error);
+            const message = error && error.message ? error.message : 'Gagal mengirim komentar. Coba lagi.';
+            commentError.textContent = message;
+        })
+        .finally(() => {
+            commentSubmit.disabled = false;
+        });
+    });
+}
 </script>
 @endsection
+
